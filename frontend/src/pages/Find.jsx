@@ -165,7 +165,7 @@ export default function Find({ term, slots }) {
             legend="Day"
             name="find-day"
             value={day}
-            onChange={(v) => { setDay(v); setOpenRoom(null) }}
+            onChange={setDay}
             options={DAYS.map((d) => ({ value: d.value, label: d.short }))}
           />
           <div className="row">
@@ -242,7 +242,6 @@ export default function Find({ term, slots }) {
           {rooms.length > 0 && (
             <ul className="grid" aria-busy={state.loading || undefined}>
               {rooms.map((room) => {
-                const isOpen = openRoom === room.room_no
                 const statusInfo = roomStatuses[room.room_no]
                 const isCheckedIn = Boolean(statusInfo?.user_checked_in)
                 const trafficLabel = statusInfo?.label || '🟢 Empty'

@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState } from 'react'
 import { errorText, useApi } from './api.js'
 import { formatShortDate } from './time.js'
-import { Badge, Button, Notice, Skeleton } from './ui.jsx'
+import { Badge, Button, Card, Notice, Skeleton } from './ui.jsx'
 import Find from './pages/Find.jsx'
 import Timeline from './pages/Timeline.jsx'
 import Teacher from './pages/Teacher.jsx'
@@ -19,17 +19,45 @@ const ACTIVE_ROUTES = new Set(['find', 'timeline', 'teacher', 'stats', 'debug'])
 
 function parseRoute(hash) {
   const clean = (hash || '').replace(/^#/, '')
-  return ACTIVE_ROUTES.has(clean) ? clean : 'find'
+  if (!clean || clean === 'main') return 'find'
+  return ACTIVE_ROUTES.has(clean) ? clean : '404'
+}
+
+function NotFound() {
+  return (
+    <Card as="section" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', marginBlock: '1rem' }}>
+      <div className="stack" style={{ alignItems: 'center', gap: '1.25rem' }}>
+        <Badge tone="pink" style={{ fontSize: '1rem', padding: '0.35rem 0.75rem' }}>
+          404 · PAGE NOT FOUND
+        </Badge>
+        <h1 style={{ fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', lineHeight: 1 }}>
+          LOST IN THE CORRIDORS?
+        </h1>
+        <p style={{ fontSize: '1.125rem', maxWidth: '32rem', fontWeight: 600 }}>
+          The room, timetable, or page you are looking for does not exist or has been moved.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center', marginTop: '0.5rem' }}>
+          <a href="#find" className="btn btn-primary">Find Free Rooms</a>
+          <a href="#timeline" className="btn btn-secondary">View Timeline</a>
+          <a href="#stats" className="btn btn-secondary">Live Traffic Stats</a>
+        </div>
+      </div>
+    </Card>
+  )
 }
 
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { hasError: false }
+    this.state = { hasError: false, error: null }
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Unhandled UI Error:', error, errorInfo)
   }
 
   render() {
@@ -149,6 +177,8 @@ function Shell() {
     body = <Teacher />
   } else if (route === 'stats') {
     body = <Stats />
+  } else if (route === '404') {
+    body = <NotFound />
   }
 
   return (
