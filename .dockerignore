@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.env
+.env.*
+easyocr_models
+scratch_*
+time table
+files
+*.log
+Thumbs.db
+.DS_Store

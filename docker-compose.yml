@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: freeclass-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: freeclass
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d freeclass"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: freeclass-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:root@db:5432/freeclass
+      JWT_SECRET: supersecretfreeclassjwtkeymustbeatleast32charslong
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "npm run db:init && node src/server.js"
+
+volumes:
+  pgdata:

@@ -1,0 +1,21 @@
+{
+  "name": "freeclass-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=.env --watch src/server.js",
+    "start": "node --env-file=.env src/server.js",
+    "test": "node --env-file=.env --test",
+    "db:init": "node --env-file=.env src/scripts/init_db.js"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "pg": "8.23.1",
+    "zod": "4.6.7",
+    "jsonwebtoken": "9.0.3",
+    "bcryptjs": "3.0.3",
+    "helmet": "8.3.0",
+    "cors": "2.8.6",
+    "express-rate-limit": "8.7.3"
+  }
+}
