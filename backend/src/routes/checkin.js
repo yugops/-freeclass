@@ -287,24 +287,18 @@ checkinRouter.get('/rooms/status', async (req, res) => {
     const cap = r.capacity || 40
     const ratio = count / cap
 
-    let state = 'empty'
-    let label = '🟢 Empty'
+    let state = 'idle'
+    let label = '0 people have shown interest from this website'
+    let tone = 'lilac'
 
-    // Status logic: only show non-empty once 2+ distinct devices check in (prevents single fake clicks)
-    if (count >= STATUS_THRESHOLDS.MIN_DISTINCT_FOR_LIVE) {
-      if (ratio > STATUS_THRESHOLDS.MODERATE_MAX_PCT) {
-        state = 'crowded'
-        label = `🔴 Crowded (${count} people)`
-      } else if (ratio >= STATUS_THRESHOLDS.EMPTY_MAX_PCT) {
-        state = 'moderate'
-        label = `🟡 ${count} people`
-      } else {
-        state = 'empty'
-        label = count === 1 ? '🟢 1 person' : `🟢 ${count} people`
-      }
-    } else if (count === 1) {
-      state = 'empty'
-      label = '🟢 1 person'
+    if (count === 1) {
+      state = 'active'
+      label = '1 person has shown interest from this website'
+      tone = 'green'
+    } else if (count > 1) {
+      state = 'active'
+      label = `${count} people have shown interest from this website`
+      tone = count > 5 ? 'yellow' : 'green'
     }
 
     statusMap[r.room_no] = {
@@ -315,6 +309,7 @@ checkinRouter.get('/rooms/status', async (req, res) => {
       active_count: count,
       state,
       label,
+      tone,
       user_checked_in: Boolean(r.user_checked_in),
     }
   }

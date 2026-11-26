@@ -18,6 +18,7 @@ before(async () => {
 })
 
 after(async () => {
+  try { await query('DELETE FROM fc.checkin') } catch (_) {}
   await new Promise((resolve) => server.close(resolve))
   await pool.end()
 })
@@ -28,6 +29,11 @@ describe('Room Check-in & Traffic Concurrency Tests', () => {
 
   before(async () => {
     // Clear checkins for clean test environment
+    await query('DELETE FROM fc.checkin')
+  })
+
+  after(async () => {
+    // Clean up all test checkins so database is left empty
     await query('DELETE FROM fc.checkin')
   })
 
@@ -104,9 +110,9 @@ describe('Room Check-in & Traffic Concurrency Tests', () => {
       `Expected exactly 21 active check-ins, got ${roomStatus.active_count}`
     )
 
-    // With 21 / 40 = 52.5%, it should show moderate / "🟡 21 people"
-    assert.equal(roomStatus.state, 'moderate')
-    assert.match(roomStatus.label, /🟡 21 people/)
+    // With 21 check-ins, it should show active / "21 people have shown interest from this website"
+    assert.equal(roomStatus.state, 'active')
+    assert.match(roomStatus.label, /21 people have shown interest from this website/)
   })
 
   test('Single-room check-in constraint across rooms: moving to new room leaves old room', async () => {

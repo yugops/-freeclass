@@ -60,9 +60,12 @@ export default function Find({ term, slots }) {
     // Optimistic UI update
     setRoomStatuses((s) => {
       const nextCount = willCheckIn ? prev.active_count + 1 : Math.max(0, prev.active_count - 1)
-      const nextLabel = willCheckIn
-        ? (nextCount >= 2 ? (nextCount > 24 ? `🔴 Crowded (${nextCount} people)` : `🟡 ${nextCount} people`) : '🟢 1 person')
-        : (nextCount >= 2 ? `🟡 ${nextCount} people` : '🟢 Empty')
+      const nextLabel = nextCount === 0
+        ? '0 people have shown interest from this website'
+        : nextCount === 1
+          ? '1 person has shown interest from this website'
+          : `${nextCount} people have shown interest from this website`
+      const nextTone = nextCount === 0 ? 'lilac' : nextCount > 5 ? 'yellow' : 'green'
       return {
         ...s,
         [roomNo]: {
@@ -70,7 +73,8 @@ export default function Find({ term, slots }) {
           user_checked_in: willCheckIn,
           active_count: nextCount,
           label: nextLabel,
-          state: nextCount > 24 ? 'crowded' : nextCount >= 10 ? 'moderate' : 'empty',
+          tone: nextTone,
+          state: nextCount > 0 ? 'active' : 'idle',
         },
       }
     })
@@ -274,8 +278,8 @@ export default function Find({ term, slots }) {
               {rooms.map((room) => {
                 const statusInfo = roomStatuses[room.room_no]
                 const isCheckedIn = Boolean(statusInfo?.user_checked_in)
-                const trafficLabel = statusInfo?.label || '🟢 Empty'
-                const trafficTone = statusInfo?.state === 'crowded' ? 'red' : statusInfo?.state === 'moderate' ? 'yellow' : 'green'
+                const trafficLabel = statusInfo?.label || '0 people have shown interest from this website'
+                const trafficTone = statusInfo?.tone || 'lilac'
 
                 return (
                   <Card as="li" key={room.room_no}>

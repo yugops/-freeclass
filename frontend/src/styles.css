@@ -75,7 +75,7 @@ a { color: var(--ink); font-weight: 700; }
 
 .site-header {
   border-bottom: var(--bw) solid var(--ink);
-  background: var(--blue);
+  background: var(--cream);
   padding-block: 1rem;
   box-shadow: 0 4px 0 var(--ink);
 }
