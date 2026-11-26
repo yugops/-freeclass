@@ -46,6 +46,14 @@ export function recordRateLimit(key, map) {
   }
 }
 
+export function refundRateLimit(key, map) {
+  const history = map.get(key)
+  if (Array.isArray(history) && history.length > 0) {
+    history.pop()
+    map.set(key, history)
+  }
+}
+
 const checkinSchema = z.object({
   device_id: z.string().uuid({ message: 'device_id must be a valid UUID' }),
   room_id: z.union([z.coerce.number().int().positive(), z.string().min(1)]),
@@ -257,6 +265,12 @@ checkinRouter.post('/leave', validate(leaveSchema, 'body'), async (req, res) => 
       modified: updateRes.rowCount > 0,
     }
   })
+
+  if (result.modified) {
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown'
+    refundRateLimit(clientIp, ipCheckinMap)
+    refundRateLimit(device_id, deviceCheckinMap)
+  }
 
   res.json({
     success: true,

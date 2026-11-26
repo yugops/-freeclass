@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { app } from '../src/app.js'
 import { pool, query } from '../src/db.js'
-import { checkRateLimit, recordRateLimit, MAX_CHECKINS_PER_WINDOW } from '../src/routes/checkin.js'
+import { checkRateLimit, recordRateLimit, refundRateLimit, MAX_CHECKINS_PER_WINDOW } from '../src/routes/checkin.js'
 
 let server
 let baseUrl
@@ -193,5 +193,9 @@ describe('Room Check-in & Traffic Concurrency Tests', () => {
       () => checkRateLimit(testKey, map, 'device', true),
       (err) => err.status === 429 && /limit: 3 per minute/.test(err.message)
     )
+
+    // Leaving a room refunds 1 check-in slot, immediately allowing another check-in
+    refundRateLimit(testKey, map)
+    assert.doesNotThrow(() => checkRateLimit(testKey, map, 'device', true))
   })
 })
