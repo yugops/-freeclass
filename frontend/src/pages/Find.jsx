@@ -57,26 +57,40 @@ export default function Find({ term, slots }) {
     setCheckinBusy((b) => ({ ...b, [roomNo]: true }))
     setCheckinToast(null)
 
-    // Optimistic UI update
+    // Snapshot of previous statuses for rollback on error
+    const previousSnapshot = { ...roomStatuses }
+
+    // Optimistic UI update:
+    // If checking into roomNo, clear user_checked_in and decrement active_count for any previous room
     setRoomStatuses((s) => {
-      const nextCount = willCheckIn ? prev.active_count + 1 : Math.max(0, prev.active_count - 1)
-      const nextLabel = nextCount === 0
-        ? '0 people have shown interest from this website'
-        : nextCount === 1
-          ? '1 person has shown interest from this website'
-          : `${nextCount} people have shown interest from this website`
-      const nextTone = nextCount === 0 ? 'lilac' : nextCount > 5 ? 'yellow' : 'green'
-      return {
-        ...s,
-        [roomNo]: {
-          ...prev,
-          user_checked_in: willCheckIn,
-          active_count: nextCount,
-          label: nextLabel,
-          tone: nextTone,
-          state: nextCount > 0 ? 'active' : 'idle',
-        },
+      const next = { ...s }
+      if (willCheckIn) {
+        for (const [rNo, rData] of Object.entries(next)) {
+          if (rNo !== roomNo && rData.user_checked_in) {
+            const decrCount = Math.max(0, (rData.active_count || 1) - 1)
+            next[rNo] = {
+              ...rData,
+              user_checked_in: false,
+              active_count: decrCount,
+              label: `${decrCount} TFW`,
+              tone: decrCount === 0 ? 'lilac' : decrCount > 5 ? 'yellow' : 'green',
+              state: decrCount > 0 ? 'active' : 'idle',
+            }
+          }
+        }
       }
+      const nextCount = willCheckIn ? prev.active_count + 1 : Math.max(0, prev.active_count - 1)
+      const nextLabel = `${nextCount} TFW`
+      const nextTone = nextCount === 0 ? 'lilac' : nextCount > 5 ? 'yellow' : 'green'
+      next[roomNo] = {
+        ...prev,
+        user_checked_in: willCheckIn,
+        active_count: nextCount,
+        label: nextLabel,
+        tone: nextTone,
+        state: nextCount > 0 ? 'active' : 'idle',
+      }
+      return next
     })
 
     try {
@@ -97,7 +111,7 @@ export default function Find({ term, slots }) {
     } catch (err) {
       // Rollback to previous state on error
       const errMsg = errorText(err)
-      setRoomStatuses((s) => ({ ...s, [roomNo]: prev }))
+      setRoomStatuses(previousSnapshot)
       setCheckinToast({ tone: 'error', text: errMsg, roomNo })
       // Auto-scroll to where the error appears
       setTimeout(() => {
@@ -269,6 +283,10 @@ export default function Find({ term, slots }) {
             {state.loading && <Badge tone="yellow">Updating...</Badge>}
           </p>
 
+          <p className="small-meta" style={{ marginTop: '0.25rem', marginBottom: '0.875rem' }}>
+            * <strong>TFW</strong> = Traffic came from website (student check-ins recorded via this site)
+          </p>
+
           {rooms.length === 0 && !outsideHours && (
             <Empty>No free rooms at {queryTime} on {dayName(queryDay, 'short')}. Try another time or turn off the charging filter.</Empty>
           )}
@@ -278,7 +296,7 @@ export default function Find({ term, slots }) {
               {rooms.map((room) => {
                 const statusInfo = roomStatuses[room.room_no]
                 const isCheckedIn = Boolean(statusInfo?.user_checked_in)
-                const trafficLabel = statusInfo?.label || '0 people have shown interest from this website'
+                const trafficLabel = statusInfo?.label || '0 TFW'
                 const trafficTone = statusInfo?.tone || 'lilac'
 
                 return (
@@ -287,7 +305,7 @@ export default function Find({ term, slots }) {
                       <h2 className="big-data">{room.room_no}</h2>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', alignItems: 'center' }}>
                         {room.has_charging && <Badge tone="blue">Charging</Badge>}
-                        <Badge tone={trafficTone}>{trafficLabel}</Badge>
+                        <Badge tone={trafficTone} title="TFW: Traffic came from website">{trafficLabel}</Badge>
                       </div>
                     </div>
 
@@ -300,7 +318,7 @@ export default function Find({ term, slots }) {
                     </div>
 
                     {checkinToast?.roomNo === room.room_no && checkinToast?.tone === 'error' && (
-                      <div style={{ marginTop: '0.5rem' }}>
+                      <div ref={toastRef} style={{ marginTop: '0.5rem', scrollMarginTop: '2rem' }}>
                         <Notice tone="error">
                           <span>{checkinToast.text}</span>
                         </Notice>
@@ -313,7 +331,7 @@ export default function Find({ term, slots }) {
                         busy={Boolean(checkinBusy[room.room_no])}
                         onClick={() => handleToggleCheckin(room.room_no)}
                       >
-                        {isCheckedIn ? 'Leave room' : "I'm using this room"}
+                        {isCheckedIn ? 'Leave room' : 'Contribute to traffic'}
                       </Button>
                     </div>
                   </Card>

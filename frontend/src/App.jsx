@@ -258,7 +258,7 @@ function Shell() {
             Only rooms with timetable data are listed. A missing room is unknown, not busy.
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap', fontWeight: 800, fontSize: '0.9375rem' }}>
-            <span>Made by <strong>Yug</strong></span>
+            <span>Made by <strong>Yug</strong> &amp; <strong>Rohan</strong></span>
             <span>·</span>
             <a
               href="https://instagram.com/yugishuman"
@@ -277,6 +277,15 @@ function Shell() {
               style={{ textDecoration: 'none', color: 'var(--ink)' }}
             >
               🐙 @yugops
+            </a>
+            <a
+              href="https://instagram.com/__rohanvashisth"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="badge badge-pink"
+              style={{ textDecoration: 'none', color: 'var(--ink)' }}
+            >
+              📸 @__rohanvashisth
             </a>
           </div>
         </div>

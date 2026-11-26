@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { app } from '../src/app.js'
 import { pool, query } from '../src/db.js'
+import { checkRateLimit, recordRateLimit, MAX_CHECKINS_PER_WINDOW } from '../src/routes/checkin.js'
 
 let server
 let baseUrl
@@ -110,9 +111,9 @@ describe('Room Check-in & Traffic Concurrency Tests', () => {
       `Expected exactly 21 active check-ins, got ${roomStatus.active_count}`
     )
 
-    // With 21 check-ins, it should show active / "21 people have shown interest from this website"
+    // With 21 check-ins, it should show active / "21 TFW"
     assert.equal(roomStatus.state, 'active')
-    assert.match(roomStatus.label, /21 people have shown interest from this website/)
+    assert.match(roomStatus.label, /21 TFW/)
   })
 
   test('Single-room check-in constraint across rooms: moving to new room leaves old room', async () => {
@@ -175,5 +176,22 @@ describe('Room Check-in & Traffic Concurrency Tests', () => {
     statusMap = await statusRes.json()
     assert.equal(statusMap[TEST_ROOM_2].user_checked_in, false)
     assert.equal(statusMap[TEST_ROOM_2].active_count, countBefore - 1)
+  })
+
+  test('Rate limit allows up to 3 check-ins per minute and rejects the 4th', () => {
+    const map = new Map()
+    const testKey = 'test-device-rate-limit'
+
+    // 1st, 2nd, and 3rd check-ins succeed
+    for (let i = 1; i <= MAX_CHECKINS_PER_WINDOW; i++) {
+      assert.doesNotThrow(() => checkRateLimit(testKey, map, 'device', true))
+      recordRateLimit(testKey, map)
+    }
+
+    // 4th check-in is rejected with 429
+    assert.throws(
+      () => checkRateLimit(testKey, map, 'device', true),
+      (err) => err.status === 429 && /limit: 3 per minute/.test(err.message)
+    )
   })
 })

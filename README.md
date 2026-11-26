@@ -11,8 +11,8 @@ A lightning-fast, semester-agnostic college room and timetable navigator built w
 - **⚡ Instant Free Room Finder**: Query free rooms at any weekday and time with filterable options (e.g., charging outlets required).
 - **🟢 Live No-Login Room Check-ins**:
   - Anonymous browser device identification via `localStorage` device UUIDs.
-  - "I'm using this room" one-click check-in with optimistic UI updates and auto-polling every 30s.
-  - Live occupancy traffic badges: 🟢 Empty (<25% or 0–1 people), 🟡 A few people (25%–60%), 🔴 Crowded (>60%).
+  - "Contribute to traffic" one-click check-in with optimistic UI updates and auto-polling every 30s.
+  - Live crowd traffic badges: TFW (Traffic came From Website) count per room.
   - Single active check-in guarantee per device across rooms.
 - **👨‍🏫 Faculty Rollover Schedule**:
   - Interactive rollover/dropdown menu covering all faculty members.

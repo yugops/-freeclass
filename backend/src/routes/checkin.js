@@ -5,35 +5,43 @@ import { HttpError, validate } from '../http.js'
 
 // Occupancy status thresholds (configured in one place for easy tuning)
 export const STATUS_THRESHOLDS = {
-  EMPTY_MAX_PCT: 0.25,       // < 25% capacity
+  LOW_MAX_PCT: 0.25,         // < 25% capacity
   MODERATE_MAX_PCT: 0.60,    // 25% - 60% capacity
-  MIN_DISTINCT_FOR_LIVE: 2,  // Require at least 2 distinct devices before showing non-empty status
+  MIN_DISTINCT_FOR_LIVE: 2,  // Require at least 2 distinct devices before showing non-idle status
 }
 
-// In-memory rate limiting: max 1 check-in per minute per IP and per device_id
+// In-memory rate limiting: max 3 check-ins per minute per IP and per device_id
 const ipCheckinMap = new Map()
 const deviceCheckinMap = new Map()
 const RATE_LIMIT_WINDOW_MS = 60 * 1000
+export const MAX_CHECKINS_PER_WINDOW = 3
 
-function checkRateLimit(key, map, label) {
-  if (process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT || process.env.DISABLE_RATE_LIMIT === 'true') {
+export function checkRateLimit(key, map, label, force = false) {
+  if (!force && (process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT || process.env.DISABLE_RATE_LIMIT === 'true')) {
     return
   }
   const now = Date.now()
-  const last = map.get(key)
-  if (last && now - last < RATE_LIMIT_WINDOW_MS) {
-    const waitSec = Math.ceil((RATE_LIMIT_WINDOW_MS - (now - last)) / 1000)
-    throw new HttpError(429, 'RATE_LIMITED', `Too many check-ins. Please wait ${waitSec}s before checking in again.`)
+  const history = (map.get(key) || []).filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS)
+  map.set(key, history)
+  if (history.length >= MAX_CHECKINS_PER_WINDOW) {
+    const oldest = history[0]
+    const waitSec = Math.ceil((RATE_LIMIT_WINDOW_MS - (now - oldest)) / 1000)
+    throw new HttpError(429, 'RATE_LIMITED', `Too many check-ins (limit: ${MAX_CHECKINS_PER_WINDOW} per minute). Please wait ${waitSec}s before checking in again.`)
   }
 }
 
-function recordRateLimit(key, map) {
-  map.set(key, Date.now())
+export function recordRateLimit(key, map) {
+  const now = Date.now()
+  const history = (map.get(key) || []).filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS)
+  history.push(now)
+  map.set(key, history)
   // Prevent map growth
   if (map.size > 10000) {
     const cutoff = Date.now() - RATE_LIMIT_WINDOW_MS
     for (const [k, v] of map.entries()) {
-      if (v < cutoff) map.delete(k)
+      const valid = v.filter((ts) => ts >= cutoff)
+      if (valid.length === 0) map.delete(k)
+      else map.set(k, valid)
     }
   }
 }
@@ -288,16 +296,16 @@ checkinRouter.get('/rooms/status', async (req, res) => {
     const ratio = count / cap
 
     let state = 'idle'
-    let label = '0 people have shown interest from this website'
+    let label = '0 TFW'
     let tone = 'lilac'
 
     if (count === 1) {
       state = 'active'
-      label = '1 person has shown interest from this website'
+      label = '1 TFW'
       tone = 'green'
     } else if (count > 1) {
       state = 'active'
-      label = `${count} people have shown interest from this website`
+      label = `${count} TFW`
       tone = count > 5 ? 'yellow' : 'green'
     }
 
@@ -348,27 +356,27 @@ checkinRouter.get('/rooms/traffic-stats', async (_req, res) => {
     totalCheckins += Number(r.total_checkins)
     if (active > 0) roomsInUse++
 
-    let state = 'empty'
-    let label = '🟢 Empty'
-    let tone = 'green'
+    let state = 'idle'
+    let label = '0 TFW'
+    let tone = 'lilac'
 
     if (active >= STATUS_THRESHOLDS.MIN_DISTINCT_FOR_LIVE) {
       if (active / cap > STATUS_THRESHOLDS.MODERATE_MAX_PCT) {
         state = 'crowded'
-        label = `🔴 Crowded (${active})`
+        label = `🔴 ${active} TFW`
         tone = 'red'
-      } else if (active / cap >= STATUS_THRESHOLDS.EMPTY_MAX_PCT) {
+      } else if (active / cap >= STATUS_THRESHOLDS.LOW_MAX_PCT) {
         state = 'moderate'
-        label = `🟡 Moderate (${active})`
+        label = `🟡 ${active} TFW`
         tone = 'yellow'
       } else {
-        state = 'empty'
-        label = `🟢 Active (${active})`
+        state = 'active'
+        label = `🟢 ${active} TFW`
         tone = 'green'
       }
     } else if (active === 1) {
-      state = 'empty'
-      label = '🟢 1 person'
+      state = 'active'
+      label = '🟢 1 TFW'
       tone = 'green'
     }
 
