@@ -2,7 +2,7 @@
 
 A lightning-fast, semester-agnostic college room and timetable navigator built with **PostgreSQL**, **Express 5**, and **React 19** in a bold **neo-brutalist** design.
 
-`#freeclass` lets students and faculty instantly discover available classrooms, locate faculty schedules, check charging port availability, book study rooms, and see live, real-time room occupancy and crowd traffic—**with zero login required**.
+`#freeclass` lets students and faculty instantly discover available classrooms, locate faculty schedules, check charging port availability, and see live, real-time room occupancy and crowd traffic—**with zero login required**.
 
 ---
 
@@ -18,9 +18,8 @@ A lightning-fast, semester-agnostic college room and timetable navigator built w
   - Interactive rollover/dropdown menu covering all faculty members.
   - Day-by-day timetable schedule view without requiring manual time inputs.
 - **🔌 Unmentioned Charging Rooms**: Special highlighted section for classrooms confirmed to have charging ports even if no classes are formally scheduled there.
-- **📅 Conflict-Free Room Reservations**: Atomic database stored-procedure booking preventing double-booking race conditions.
-- **📊 Real-Time Utilization Analytics**: Visualized room usage distribution and slot occupancies.
-- **🎨 Neo-Brutalism Design**: High contrast, crisp 3px ink borders, hard offset shadows, zero border radii, and 100% mobile-friendly responsive layouts.
+- **📊 Real-Time Check-in Traffic Analytics**: Live Stats page powered 100% by student check-in activity—showing active students studying right now, rooms in use, and capacity occupancy bars.
+- **🎨 Neo-Brutalism Design**: Vibrant colorful accents, crisp 3px ink borders, hard offset shadows, zero border radii, and 100% mobile-friendly responsive layouts.
 
 ---
 

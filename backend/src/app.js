@@ -10,7 +10,6 @@ import { catalog } from './routes/catalog.js'
 import { rooms } from './routes/rooms.js'
 import { teachers } from './routes/teachers.js'
 import { auth } from './routes/auth.js'
-import { reservations } from './routes/reservations.js'
 import { checkinRouter } from './routes/checkin.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -33,7 +32,6 @@ app.use('/api', catalog)
 app.use('/api', rooms)
 app.use('/api', teachers)
 app.use('/api', auth)
-app.use('/api', reservations)
 app.use('/api', checkinRouter)
 
 app.use('/api', (_req, _res, next) => {

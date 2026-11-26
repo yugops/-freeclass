@@ -2,141 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { errorText, request, useApi } from '../api.js'
 import { getDeviceId } from '../device.js'
 import {
-  DAYS, dateForDay, dayName, dayOfDate, defaultDay, formatDate,
-  hhmm, isWeekend, localNow, localToday, slotForTime, toMin,
+  DAYS, dayName, defaultDay, hhmm, isWeekend, localNow, toMin,
 } from '../time.js'
 import { Badge, Button, Card, Check, Choice, Empty, Field, Notice, Skeleton } from '../ui.jsx'
-
-function ReservePanel({ roomNo, day, time, term, slots }) {
-  const minDate = localToday() > term.starts_on ? localToday() : term.starts_on
-  const maxDate = term.ends_on
-  const initialDate = dateForDay(day, minDate, maxDate)
-  const tMin = toMin(time)
-  const initialSlot = slotForTime(slots, time)?.slot_no
-    ?? slots.find((s) => toMin(s.start_time) > tMin)?.slot_no
-    ?? slots[0]?.slot_no ?? 1
-
-  const [date, setDate] = useState(initialDate || '')
-  const [slotNo, setSlotNo] = useState(initialSlot)
-  const [dateErr, setDateErr] = useState('')
-  const [touched, setTouched] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [apiErr, setApiErr] = useState('')
-  const [booked, setBooked] = useState(null)
-
-  const dateRef = useRef(null)
-  const successRef = useRef(null)
-
-  useEffect(() => {
-    if (booked && successRef.current) successRef.current.focus()
-  }, [booked])
-
-  const checkDate = (val) => {
-    if (!val || val < minDate || val > maxDate || dayOfDate(val) !== day) {
-      return `Pick a ${dayName(day, 'long')}.`
-    }
-    return ''
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setTouched(true)
-    setApiErr('')
-    const err = checkDate(date)
-    setDateErr(err)
-    if (err) {
-      dateRef.current?.focus()
-      return
-    }
-    setBusy(true)
-    try {
-      await request('/reservations', {
-        method: 'POST',
-        body: { room_no: roomNo, date, slot_no: Number(slotNo) },
-      })
-      const slot = slots.find((s) => s.slot_no === Number(slotNo))
-      setBooked({ date, slot })
-    } catch (errRes) {
-      setApiErr(errorText(errRes))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  if (!initialDate) {
-    return (
-      <div className="sub-panel">
-        <Notice tone="warning"><span>No {dayName(day, 'long')} left in this term.</span></Notice>
-      </div>
-    )
-  }
-
-  if (booked) {
-    return (
-      <div className="sub-panel">
-        <Notice
-          tone="success"
-          noticeRef={successRef}
-          action={<a className="btn btn-secondary" href="#mine">View bookings</a>}
-        >
-          <span>
-            Booked {roomNo} on {formatDate(booked.date)}, {hhmm(booked.slot?.start_time)} to {hhmm(booked.slot?.end_time)}.
-          </span>
-        </Notice>
-      </div>
-    )
-  }
-
-  return (
-    <form className="sub-panel stack" onSubmit={handleSubmit} noValidate>
-      <p><strong>Room:</strong> <span className="mono">{roomNo}</span></p>
-      <Field id={`res-date-${roomNo}`} label="Date" error={dateErr}>
-        {(props) => (
-          <input
-            {...props}
-            ref={dateRef}
-            className="input"
-            type="date"
-            min={minDate}
-            max={maxDate}
-            value={date}
-            onChange={(e) => {
-              setDate(e.target.value)
-              if (touched) setDateErr(checkDate(e.target.value))
-            }}
-            onBlur={() => { if (touched) setDateErr(checkDate(date)) }}
-            required
-          />
-        )}
-      </Field>
-      <Field id={`res-slot-${roomNo}`} label="Period">
-        {(props) => (
-          <select
-            {...props}
-            className="select"
-            value={slotNo}
-            onChange={(e) => setSlotNo(Number(e.target.value))}
-          >
-            {slots.map((s) => (
-              <option key={s.slot_no} value={s.slot_no}>
-                {s.slot_no} · {hhmm(s.start_time)} to {hhmm(s.end_time)}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
-      {apiErr && <Notice tone="error"><span>{apiErr}</span></Notice>}
-      <div><Button type="submit" variant="primary" busy={busy}>Reserve this room</Button></div>
-    </form>
-  )
-}
 
 export default function Find({ term, slots }) {
   const [day, setDay] = useState(() => defaultDay())
   const [time, setTime] = useState(() => localNow())
   const [charging, setCharging] = useState(false)
   const [sort, setSort] = useState('longest')
-  const [openRoom, setOpenRoom] = useState(null)
   const [state, setState] = useState({ data: null, error: null, loading: true })
   const [reloadTick, setReloadTick] = useState(0)
 
@@ -400,24 +274,7 @@ export default function Find({ term, slots }) {
                       >
                         {isCheckedIn ? 'Leave room' : "I'm using this room"}
                       </Button>
-                      <Button
-                        variant={isOpen ? 'secondary' : 'primary'}
-                        aria-expanded={isOpen}
-                        onClick={() => setOpenRoom(isOpen ? null : room.room_no)}
-                      >
-                        {isOpen ? 'Close reserve' : 'Reserve'}
-                      </Button>
                     </div>
-
-                    {isOpen && (
-                      <ReservePanel
-                        roomNo={room.room_no}
-                        day={queryDay}
-                        time={queryTime}
-                        term={term}
-                        slots={slots}
-                      />
-                    )}
                   </Card>
                 )
               })}

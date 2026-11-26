@@ -6,7 +6,6 @@ import Find from './pages/Find.jsx'
 import Timeline from './pages/Timeline.jsx'
 import Teacher from './pages/Teacher.jsx'
 import Stats from './pages/Stats.jsx'
-import Mine from './pages/Mine.jsx'
 import Tester from './debug/Tester.jsx'
 
 const NAV_ITEMS = [
@@ -14,10 +13,9 @@ const NAV_ITEMS = [
   { id: 'timeline', label: 'Timeline', title: 'Timeline' },
   { id: 'teacher', label: 'Teachers', title: 'Teachers' },
   { id: 'stats', label: 'Stats', title: 'Stats' },
-  { id: 'mine', label: 'Bookings', title: 'Bookings' },
 ]
 
-const ACTIVE_ROUTES = new Set(['find', 'timeline', 'teacher', 'stats', 'mine', 'debug'])
+const ACTIVE_ROUTES = new Set(['find', 'timeline', 'teacher', 'stats', 'debug'])
 
 function parseRoute(hash) {
   const clean = (hash || '').replace(/^#/, '')
@@ -151,8 +149,6 @@ function Shell() {
     body = <Teacher />
   } else if (route === 'stats') {
     body = <Stats />
-  } else if (route === 'mine') {
-    body = <Mine />
   }
 
   return (

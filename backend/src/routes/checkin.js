@@ -321,3 +321,85 @@ checkinRouter.get('/rooms/status', async (req, res) => {
 
   res.json(statusMap)
 })
+
+// 4. GET /api/rooms/traffic-stats -> Real live check-in traffic analytics for Stats page
+checkinRouter.get('/rooms/traffic-stats', async (_req, res) => {
+  const { rows } = await query(
+    `SELECT 
+       r.room_id,
+       r.room_no,
+       b.code AS block,
+       COALESCE(r.capacity, 40) AS capacity,
+       COUNT(DISTINCT c.device_id) FILTER (WHERE c.status = 'active' AND c.expires_at > clock_timestamp())::int AS active_count,
+       COUNT(c.checkin_id)::int AS total_checkins,
+       COUNT(DISTINCT c.device_id)::int AS unique_visitors
+     FROM fc.room r
+     JOIN fc.block b ON b.block_id = r.block_id
+     LEFT JOIN fc.checkin c ON c.room_id = r.room_id
+     GROUP BY r.room_id, r.room_no, b.code, r.capacity
+     ORDER BY active_count DESC, total_checkins DESC, r.room_no ASC`
+  )
+
+  let totalActive = 0
+  let totalCheckins = 0
+  let roomsInUse = 0
+
+  const items = rows.map((r, index) => {
+    const active = Number(r.active_count)
+    const cap = Number(r.capacity)
+    const occPct = cap > 0 ? Math.min(100, Math.round((active / cap) * 100)) : 0
+
+    totalActive += active
+    totalCheckins += Number(r.total_checkins)
+    if (active > 0) roomsInUse++
+
+    let state = 'empty'
+    let label = '🟢 Empty'
+    let tone = 'green'
+
+    if (active >= STATUS_THRESHOLDS.MIN_DISTINCT_FOR_LIVE) {
+      if (active / cap > STATUS_THRESHOLDS.MODERATE_MAX_PCT) {
+        state = 'crowded'
+        label = `🔴 Crowded (${active})`
+        tone = 'red'
+      } else if (active / cap >= STATUS_THRESHOLDS.EMPTY_MAX_PCT) {
+        state = 'moderate'
+        label = `🟡 Moderate (${active})`
+        tone = 'yellow'
+      } else {
+        state = 'empty'
+        label = `🟢 Active (${active})`
+        tone = 'green'
+      }
+    } else if (active === 1) {
+      state = 'empty'
+      label = '🟢 1 person'
+      tone = 'green'
+    }
+
+    return {
+      room_id: r.room_id,
+      room_no: r.room_no,
+      block: r.block,
+      capacity: cap,
+      active_count: active,
+      occupancy_pct: occPct,
+      total_checkins: Number(r.total_checkins),
+      unique_visitors: Number(r.unique_visitors),
+      state,
+      label,
+      tone,
+      rank: index + 1,
+    }
+  })
+
+  res.json({
+    summary: {
+      total_active_users: totalActive,
+      rooms_in_use: roomsInUse,
+      total_rooms: rows.length,
+      total_checkins_all_time: totalCheckins,
+    },
+    rooms: items,
+  })
+})

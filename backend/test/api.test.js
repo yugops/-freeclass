@@ -143,90 +143,20 @@ describe('#freeclass API Invariant and Contract Tests', () => {
     }
   })
 
-  test('Reservations: rejection on scheduled class (422)', async () => {
-    const { rows } = await query(
-      `SELECT r.room_no, s.slot_no, e.day_no
-       FROM timetable_entry e
-       JOIN room r ON r.room_id = e.room_id
-       JOIN time_slot s ON s.slot_id = e.slot_id
-       WHERE e.term_id = (SELECT term_id FROM term WHERE is_active)
-       LIMIT 1`
-    )
-    assert.ok(rows.length > 0)
-    const occupied = rows[0]
-
-    let d = new Date(dynamicTestDate)
-    while (d.getUTCDay() !== occupied.day_no) {
-      d.setUTCDate(d.getUTCDate() + 1)
-    }
-    const occupiedDate = d.toISOString().slice(0, 10)
-
-    const res = await fetch(`${baseUrl}/reservations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        room_no: occupied.room_no,
-        date: occupiedDate,
-        slot_no: occupied.slot_no,
-      }),
-    })
-    assert.equal(res.status, 422)
+  test('GET /rooms/traffic-stats returns real check-in traffic analytics', async () => {
+    const res = await fetch(`${baseUrl}/rooms/traffic-stats`)
+    assert.equal(res.status, 200)
     const body = await res.json()
-    assert.equal(body.error?.code, 'RESERVATION_REJECTED')
-  })
-
-  test('Reservations: concurrent double-booking (one 201, one 409 SLOT_TAKEN)', async () => {
-    // Clear any prior test reservations on this room/date/slot
-    await query(
-      `DELETE FROM reservation WHERE room_id = (SELECT room_id FROM room WHERE room_no = $1) AND on_date = $2 AND slot_id = (SELECT slot_id FROM time_slot WHERE term_id = (SELECT term_id FROM term WHERE is_active) AND slot_no = $3)`,
-      [dynamicFreeRoom, dynamicTestDate, dynamicSlotNo]
-    )
-
-    const [resA, resB] = await Promise.all([
-      fetch(`${baseUrl}/reservations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          room_no: dynamicFreeRoom,
-          date: dynamicTestDate,
-          slot_no: dynamicSlotNo,
-        }),
-      }),
-      fetch(`${baseUrl}/reservations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          room_no: dynamicFreeRoom,
-          date: dynamicTestDate,
-          slot_no: dynamicSlotNo,
-        }),
-      }),
-    ])
-
-    const statuses = [resA.status, resB.status].sort()
-    assert.deepEqual(statuses, [201, 409], 'Exactly one request succeeds (201) and one conflicts (409)')
-
-    const conflictRes = resA.status === 409 ? resA : resB
-    const conflictBody = await conflictRes.json()
-    assert.equal(conflictBody.error?.code, 'SLOT_TAKEN')
-  })
-
-  test('Reservations: mine and cancel', async () => {
-    const mineRes = await fetch(`${baseUrl}/reservations/mine`)
-    assert.equal(mineRes.status, 200)
-    const mine = await mineRes.json()
-    assert.ok(mine.length > 0)
-    const resvId = mine[0].reservation_id
-
-    const cancelRes = await fetch(`${baseUrl}/reservations/${resvId}`, {
-      method: 'DELETE',
-    })
-    assert.equal(cancelRes.status, 200)
-
-    const afterCancel = await fetch(`${baseUrl}/reservations/mine`)
-    const afterList = await afterCancel.json()
-    const match = afterList.find((r) => r.reservation_id === resvId)
-    assert.equal(match, undefined, 'Cancelled reservation is no longer in active list')
+    assert.ok(body.summary)
+    assert.equal(typeof body.summary.total_active_users, 'number')
+    assert.equal(typeof body.summary.rooms_in_use, 'number')
+    assert.ok(Array.isArray(body.rooms))
+    assert.ok(body.rooms.length > 0)
+    for (const r of body.rooms) {
+      assert.equal(typeof r.room_no, 'string')
+      assert.equal(typeof r.active_count, 'number')
+      assert.equal(typeof r.occupancy_pct, 'number')
+    }
   })
 
   test('Validation and Error Mapping tests', async () => {
