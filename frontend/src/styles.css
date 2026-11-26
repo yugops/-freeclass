@@ -75,7 +75,7 @@ a { color: var(--ink); font-weight: 700; }
 
 .site-header {
   border-bottom: var(--bw) solid var(--ink);
-  background: var(--yellow);
+  background: var(--blue);
   padding-block: 1rem;
   box-shadow: 0 4px 0 var(--ink);
 }
@@ -258,7 +258,7 @@ a { color: var(--ink); font-weight: 700; }
   touch-action: manipulation;
 }
 .choice-input:checked + .choice-label {
-  background: var(--yellow);
+  background: var(--blue);
   color: var(--ink);
   box-shadow: var(--shadow-sm);
   font-weight: 900;

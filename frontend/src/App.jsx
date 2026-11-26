@@ -81,6 +81,8 @@ class ErrorBoundary extends Component {
 
 function Shell() {
   const [route, setRoute] = useState(() => parseRoute(window.location.hash))
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false)
+  const [disclaimerDismissed, setDisclaimerDismissed] = useState(false)
 
   const mainRef = useRef(null)
   const retryRef = useRef(null)
@@ -211,21 +213,72 @@ function Shell() {
         </div>
       </header>
 
-      <div className="container" style={{ paddingTop: '1rem' }}>
-        <Notice tone="warning">
-          <span>
-            <strong>⚠️ Disclaimer:</strong> Timetable data has been sourced from physical timetables posted on classroom doors and may not always reflect real-time changes or unscheduled room usage.
-          </span>
-        </Notice>
-      </div>
+      {!disclaimerDismissed && (
+        <div className="container" style={{ paddingTop: '1rem' }}>
+          <Notice
+            tone="error"
+            action={
+              <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                <Button
+                  variant="secondary"
+                  onClick={() => setDisclaimerOpen(!disclaimerOpen)}
+                  aria-expanded={disclaimerOpen}
+                >
+                  {disclaimerOpen ? 'Hide ▴' : 'Expand ▾'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setDisclaimerDismissed(true)}
+                  aria-label="Dismiss disclaimer"
+                >
+                  ✕
+                </Button>
+              </div>
+            }
+          >
+            <div>
+              <strong>⚠️ Disclaimer:</strong> Data sourced from classroom gate timetables.
+              {disclaimerOpen && (
+                <p style={{ marginTop: '0.375rem', fontSize: '0.875rem', fontWeight: 600 }}>
+                  Timetable data has been transcribed from physical paper schedules pasted on classroom gates and doors. It may not always be true or reflect real-time teacher adjustments, cancellations, or unscheduled room occupancy.
+                </p>
+              )}
+            </div>
+          </Notice>
+        </div>
+      )}
 
       <main id="main" ref={mainRef} tabIndex={-1} className="container main">
         {body}
       </main>
 
       <footer className="site-footer">
-        <div className="container">
-          <p>Only rooms with timetable data are listed. A room that is missing is unknown, not busy.</p>
+        <div className="container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.875rem' }}>
+          <p style={{ margin: 0, fontWeight: 600 }}>
+            Only rooms with timetable data are listed. A missing room is unknown, not busy.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap', fontWeight: 800, fontSize: '0.9375rem' }}>
+            <span>Made by <strong>Yug</strong></span>
+            <span>·</span>
+            <a
+              href="https://instagram.com/yugishuman"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="badge badge-pink"
+              style={{ textDecoration: 'none', color: 'var(--ink)' }}
+            >
+              📸 @yugishuman
+            </a>
+            <a
+              href="https://github.com/yugops"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="badge badge-yellow"
+              style={{ textDecoration: 'none', color: 'var(--ink)' }}
+            >
+              🐙 @yugops
+            </a>
+          </div>
         </div>
       </footer>
     </div>

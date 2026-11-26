@@ -11,6 +11,7 @@ export default function Find({ term, slots }) {
   const [time, setTime] = useState(() => localNow())
   const [charging, setCharging] = useState(false)
   const [sort, setSort] = useState('longest')
+  const [showChargingRooms, setShowChargingRooms] = useState(false)
   const [state, setState] = useState({ data: null, error: null, loading: true })
   const [reloadTick, setReloadTick] = useState(0)
 
@@ -19,10 +20,18 @@ export default function Find({ term, slots }) {
   const [checkinBusy, setCheckinBusy] = useState({})
   const [checkinToast, setCheckinToast] = useState(null)
 
+  const resultsRef = useRef(null)
+  const toastRef = useRef(null)
   const retryRef = useRef(null)
   const firstRunRef = useRef(true)
   const validTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(time)
   const deviceId = getDeviceId()
+
+  const scrollToResults = () => {
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
 
   // Poll /api/rooms/status every 30 seconds for live occupancy traffic
   const fetchStatus = () => {
@@ -83,8 +92,13 @@ export default function Find({ term, slots }) {
       fetchStatus()
     } catch (err) {
       // Rollback to previous state on error
+      const errMsg = errorText(err)
       setRoomStatuses((s) => ({ ...s, [roomNo]: prev }))
-      setCheckinToast({ tone: 'error', text: errorText(err) })
+      setCheckinToast({ tone: 'error', text: errMsg, roomNo })
+      // Auto-scroll to where the error appears
+      setTimeout(() => {
+        toastRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 60)
     } finally {
       setCheckinBusy((b) => ({ ...b, [roomNo]: false }))
     }
@@ -151,12 +165,14 @@ export default function Find({ term, slots }) {
       {isWeekend() && day === 1 && <Notice tone="info"><span>Weekend: showing Monday</span></Notice>}
 
       {checkinToast && (
-        <Notice
-          tone={checkinToast.tone}
-          action={<Button variant="secondary" onClick={() => setCheckinToast(null)}>Dismiss</Button>}
-        >
-          <span>{checkinToast.text}</span>
-        </Notice>
+        <div ref={toastRef} style={{ scrollMarginTop: '2rem' }}>
+          <Notice
+            tone={checkinToast.tone}
+            action={<Button variant="secondary" onClick={() => setCheckinToast(null)}>Dismiss</Button>}
+          >
+            <span>{checkinToast.text}</span>
+          </Notice>
+        </div>
       )}
 
       <Card>
@@ -165,7 +181,7 @@ export default function Find({ term, slots }) {
             legend="Day"
             name="find-day"
             value={day}
-            onChange={setDay}
+            onChange={(v) => { setDay(v); scrollToResults() }}
             options={DAYS.map((d) => ({ value: d.value, label: d.short }))}
           />
           <div className="row">
@@ -173,39 +189,53 @@ export default function Find({ term, slots }) {
               {(props) => (
                 <div className="input-row">
                   <input {...props} className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
-                  <Button variant="secondary" onClick={() => setTime(localNow())}>Now</Button>
+                  <Button variant="secondary" onClick={() => { setTime(localNow()); scrollToResults() }}>Now</Button>
                 </div>
               )}
             </Field>
-            <Check id="find-charging" label="Charging only" checked={charging} onChange={setCharging} />
+            <Check id="find-charging" label="Charging only" checked={charging} onChange={(v) => { setCharging(v); scrollToResults() }} />
           </div>
           <Choice
             legend="Sort"
             name="find-sort"
             value={sort}
-            onChange={setSort}
+            onChange={(v) => { setSort(v); scrollToResults() }}
             options={[{ value: 'longest', label: 'Longest free' }, { value: 'room', label: 'Room' }]}
           />
         </div>
       </Card>
 
-      {/* Special Mention for verified charging rooms without scheduled timetable */}
+      {/* Collapsible Special Mention for verified charging rooms without scheduled timetable */}
       {unmentionedRooms.length > 0 && (
-        <Card>
-          <div className="meta-row">
-            <h2>Charging Ports (Timetable Not Published)</h2>
-            <Badge tone="blue">CHARGING</Badge>
+        <Card style={{ padding: '0.875rem 1.25rem' }}>
+          <div className="meta-row" style={{ alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+              <Badge tone="blue">CHARGING</Badge>
+              <strong>Unscheduled Rooms with Charging ({unmentionedRooms.length})</strong>
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => setShowChargingRooms(!showChargingRooms)}
+              aria-expanded={showChargingRooms}
+            >
+              {showChargingRooms ? 'Hide ▴' : 'Expand ▾'}
+            </Button>
           </div>
-          <p style={{ marginTop: '0.5rem', marginBottom: '0.75rem' }}>
-            The following rooms are confirmed to have charging ports, though no official timetable has been posted for them. They are generally accessible for charging and quiet study:
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {unmentionedRooms.map((r) => (
-              <Badge key={r.room_no} tone="green">
-                {r.room_no} (Block {r.block})
-              </Badge>
-            ))}
-          </div>
+
+          {showChargingRooms && (
+            <div style={{ marginTop: '0.875rem', borderTop: 'var(--bw) solid var(--ink)', paddingTop: '0.75rem' }}>
+              <p style={{ marginBottom: '0.75rem', fontSize: '0.9375rem' }}>
+                The following rooms are confirmed to have charging ports, though no official timetable has been posted for them. They are generally accessible for charging and quiet study:
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {unmentionedRooms.map((r) => (
+                  <Badge key={r.room_no} tone="green">
+                    {r.room_no} (Block {r.block})
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
@@ -227,7 +257,7 @@ export default function Find({ term, slots }) {
       {state.loading && !state.data && <Skeleton count={3} />}
 
       {state.data && (
-        <>
+        <div ref={resultsRef} style={{ scrollMarginTop: '1.5rem' }}>
           <p className="status-line" role="status">
             <span>
               {rooms.length} {rooms.length === 1 ? 'room' : 'rooms'} free at {queryTime} on {dayName(queryDay, 'short')}
@@ -265,6 +295,14 @@ export default function Find({ term, slots }) {
                       )}
                     </div>
 
+                    {checkinToast?.roomNo === room.room_no && checkinToast?.tone === 'error' && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <Notice tone="error">
+                          <span>{checkinToast.text}</span>
+                        </Notice>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.75rem' }}>
                       <Button
                         variant={isCheckedIn ? 'secondary' : 'confirm'}
@@ -279,7 +317,7 @@ export default function Find({ term, slots }) {
               })}
             </ul>
           )}
-        </>
+        </div>
       )}
     </div>
   )
