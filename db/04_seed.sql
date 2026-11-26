@@ -8,12 +8,16 @@ ON CONFLICT (name) DO NOTHING;
 -- 2. API role and permissions (least privilege, connecting as fc_api)
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'fc_api') THEN
-    CREATE ROLE fc_api LOGIN PASSWORD 'change_me';
+    BEGIN
+      CREATE ROLE fc_api LOGIN PASSWORD 'Fc_Api_Pass_2026!#Strong';
+      GRANT fc_app TO fc_api;
+      ALTER ROLE fc_api SET search_path = fc, public;
+    EXCEPTION WHEN OTHERS THEN
+      -- On managed cloud DBs (e.g. Neon, Supabase) secondary roles are optional
+      NULL;
+    END;
   END IF;
 END $$;
-
-GRANT fc_app TO fc_api;
-ALTER ROLE fc_api SET search_path = fc, public;
 
 -- 3. Default guest user for reservations without login
 INSERT INTO app_user (user_id, email, password_hash, full_name, role_id)
