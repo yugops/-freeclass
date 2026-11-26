@@ -5,17 +5,15 @@ import { Badge, Button, Card, Notice, Skeleton } from './ui.jsx'
 import Find from './pages/Find.jsx'
 import Timeline from './pages/Timeline.jsx'
 import Teacher from './pages/Teacher.jsx'
-import Stats from './pages/Stats.jsx'
 import Tester from './debug/Tester.jsx'
 
 const NAV_ITEMS = [
   { id: 'find', label: 'Find rooms', title: 'Find rooms' },
   { id: 'timeline', label: 'Timeline', title: 'Timeline' },
   { id: 'teacher', label: 'Teachers', title: 'Teachers' },
-  { id: 'stats', label: 'Stats', title: 'Stats' },
 ]
 
-const ACTIVE_ROUTES = new Set(['find', 'timeline', 'teacher', 'stats', 'debug'])
+const ACTIVE_ROUTES = new Set(['find', 'timeline', 'teacher', 'debug'])
 
 function parseRoute(hash) {
   const clean = (hash || '').replace(/^#/, '')
@@ -39,7 +37,6 @@ function NotFound() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center', marginTop: '0.5rem' }}>
           <a href="#find" className="btn btn-primary">Find Free Rooms</a>
           <a href="#timeline" className="btn btn-secondary">View Timeline</a>
-          <a href="#stats" className="btn btn-secondary">Live Traffic Stats</a>
         </div>
       </div>
     </Card>
@@ -175,8 +172,6 @@ function Shell() {
     body = <Timeline slots={slots.data || []} />
   } else if (route === 'teacher') {
     body = <Teacher />
-  } else if (route === 'stats') {
-    body = <Stats />
   } else if (route === '404') {
     body = <NotFound />
   }

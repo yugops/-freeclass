@@ -18,7 +18,6 @@ A lightning-fast, semester-agnostic college room and timetable navigator built w
   - Interactive rollover/dropdown menu covering all faculty members.
   - Day-by-day timetable schedule view without requiring manual time inputs.
 - **🔌 Unmentioned Charging Rooms**: Special highlighted section for classrooms confirmed to have charging ports even if no classes are formally scheduled there.
-- **📊 Real-Time Check-in Traffic Analytics**: Live Stats page powered 100% by student check-in activity—showing active students studying right now, rooms in use, and capacity occupancy bars.
 - **🎨 Neo-Brutalism Design**: Vibrant colorful accents, crisp 3px ink borders, hard offset shadows, zero border radii, and 100% mobile-friendly responsive layouts.
 
 ---
