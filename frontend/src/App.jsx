@@ -190,6 +190,14 @@ function Shell() {
         </div>
       </header>
 
+      <div className="container" style={{ paddingTop: '1rem' }}>
+        <Notice tone="warning">
+          <span>
+            <strong>⚠️ Disclaimer:</strong> Timetable data has been sourced from physical timetables posted on classroom doors and may not always reflect real-time changes or unscheduled room usage.
+          </span>
+        </Notice>
+      </div>
+
       <main id="main" ref={mainRef} tabIndex={-1} className="container main">
         {body}
       </main>
