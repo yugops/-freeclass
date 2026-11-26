@@ -15,6 +15,12 @@ import { checkinRouter } from './routes/checkin.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const frontendDist = path.resolve(__dirname, '../../frontend/dist')
 
+const corsOrigins = config.CORS_ORIGIN === '*'
+  ? true
+  : config.CORS_ORIGIN.includes(',')
+    ? config.CORS_ORIGIN.split(',').map((o) => o.trim())
+    : config.CORS_ORIGIN
+
 export const app = express()
 
 app.use(
@@ -22,7 +28,7 @@ app.use(
     contentSecurityPolicy: false,
   })
 )
-app.use(cors({ origin: config.CORS_ORIGIN }))
+app.use(cors({ origin: corsOrigins, credentials: true }))
 app.use(express.json({ limit: '10kb' }))
 
 app.use(express.static(frontendDist))

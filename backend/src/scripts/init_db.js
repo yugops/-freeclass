@@ -12,7 +12,11 @@ const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:root@loca
 
 async function init() {
   console.log('Connecting to database:', databaseUrl.replace(/:[^:@]*@/, ':****@'))
-  const client = new pg.Client({ connectionString: databaseUrl })
+  const isLocal = databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')
+  const client = new pg.Client({
+    connectionString: databaseUrl,
+    ssl: isLocal ? false : { rejectUnauthorized: false },
+  })
   await client.connect()
 
   try {

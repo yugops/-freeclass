@@ -26,6 +26,8 @@ export function errorText(err) {
   return err.message || ERROR_COPY.NETWORK
 }
 
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
+
 export async function request(path, { method = 'GET', body, token, signal } = {}) {
   const ctrl = new AbortController()
   let timedOut = false
@@ -40,7 +42,7 @@ export async function request(path, { method = 'GET', body, token, signal } = {}
   }, 8000)
 
   try {
-    const res = await fetch(`/api${path}`, {
+    const res = await fetch(`${API_BASE}${path}`, {
       method,
       headers: {
         ...(body !== undefined && { 'Content-Type': 'application/json' }),
