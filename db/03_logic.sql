@@ -16,16 +16,6 @@ LEFT JOIN subject sub ON sub.subject_id=e.subject_id
 LEFT JOIN faculty f   ON f.faculty_id=e.faculty_id
 WHERE t.is_active AND w.day_no <= 5;
 
--- Function: free rooms at a day+time (parameterised -> injection-safe from Express)
-CREATE OR REPLACE FUNCTION fn_free_rooms(p_day int, p_time time, p_need_charging boolean DEFAULT false)
-RETURNS TABLE(room_no text, has_charging boolean, free_until time) LANGUAGE sql STABLE AS $$
-  SELECT v.room_no, v.has_charging, v.end_time
-  FROM v_room_slot_status v
-  WHERE v.day_no = p_day AND v.status='free' AND p_time >= v.start_time AND p_time < v.end_time
-    AND (NOT p_need_charging OR v.has_charging)
-  ORDER BY v.room_no;
-$$;
-
 -- Window function + CTE (gaps & islands): merge consecutive free slots into free WINDOWS
 CREATE OR REPLACE VIEW v_free_windows AS
 WITH free AS (
@@ -35,6 +25,22 @@ WITH free AS (
 SELECT room_no, has_charging, day_name, day_no, MIN(start_time) AS free_from, MAX(end_time) AS free_to,
        COUNT(*) AS n_slots
 FROM free GROUP BY room_no, has_charging, day_name, day_no, grp;
+
+-- Function: free rooms at a day+time (parameterised -> injection-safe from Express)
+-- Uses merged continuous free windows and covers passing breaks between slots (e.g. 10:00 to 10:05)
+CREATE OR REPLACE FUNCTION fn_free_rooms(p_day int, p_time time, p_need_charging boolean DEFAULT false)
+RETURNS TABLE(room_no text, has_charging boolean, free_until time) LANGUAGE sql STABLE AS $$
+  SELECT w.room_no, w.has_charging, w.free_to AS free_until
+  FROM v_free_windows w
+  WHERE w.day_no = p_day
+    AND (
+      (p_time >= w.free_from AND p_time < w.free_to)
+      OR
+      (p_time >= w.free_from - INTERVAL '5 minutes' AND p_time < w.free_to)
+    )
+    AND (NOT p_need_charging OR w.has_charging)
+  ORDER BY w.room_no;
+$$;
 
 -- Where is teacher X right now?
 CREATE OR REPLACE FUNCTION fn_find_teacher(p_name text, p_day int, p_time time)

@@ -26,7 +26,11 @@ export function errorText(err) {
   return err.message || ERROR_COPY.NETWORK
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
+let rawBase = (import.meta.env.VITE_API_URL || '/api').trim().replace(/\/+$/, '')
+if (!rawBase.endsWith('/api') && (rawBase.startsWith('http://') || rawBase.startsWith('https://'))) {
+  rawBase = `${rawBase}/api`
+}
+const API_BASE = rawBase
 
 export async function request(path, { method = 'GET', body, token, signal } = {}) {
   const ctrl = new AbortController()

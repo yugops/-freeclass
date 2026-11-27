@@ -1,6 +1,7 @@
 import express from 'express'
 import helmet from 'helmet'
 import cors from 'cors'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { config } from './config.js'
@@ -40,13 +41,26 @@ app.use('/api', teachers)
 app.use('/api', auth)
 app.use('/api', checkinRouter)
 
+// Root fallbacks in case frontend requests /term, /slots without /api prefix
+app.use(health)
+app.use(catalog)
+app.use(rooms)
+app.use(teachers)
+app.use(auth)
+app.use(checkinRouter)
+
 app.use('/api', (_req, _res, next) => {
   next(new HttpError(404, 'NOT_FOUND', 'Route not found'))
 })
 
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next()
-  res.sendFile(path.join(frontendDist, 'index.html'))
+  const indexPath = path.join(frontendDist, 'index.html')
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath)
+  } else {
+    next(new HttpError(404, 'NOT_FOUND', 'Route not found'))
+  }
 })
 
 app.use(errorHandler)
